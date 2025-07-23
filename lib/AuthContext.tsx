@@ -8,15 +8,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const getSession = async () => {
+      console.log('Checking session...');
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session data:', session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        console.log('Syncing user:', session.user.id, session.user.email);
+        const { error } = await supabase.from('users').upsert({
+          id: session.user.id,
+          email: session.user.email,
+        }, { onConflict: 'id' });
+        if (error) console.error('Error syncing user:', error);
+      }
       setLoading(false);
-    });
+      console.log('Loading set to false, user:', user);
+    };
+    getSession();
 
-    // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('Auth state changed:', _event, session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        const { error } = await supabase.from('users').upsert({
+          id: session.user.id,
+          email: session.user.email,
+        }, { onConflict: 'id' });
+        if (error) console.error('Error syncing user on auth change:', error);
+      }
     });
 
     return () => {
@@ -25,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, supabase }}>
       {children}
     </AuthContext.Provider>
   );

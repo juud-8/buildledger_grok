@@ -16,12 +16,17 @@ export default function InvoicesPage() {
   useEffect(() => {
     if (!user) return;
     const fetchInvoices = async () => {
+      console.log('Fetching invoices for user:', user.id);
       const { data, error } = await supabase
         .from('invoices')
         .select('id, title, total_amount, status, issued_date')
         .eq('user_id', user.id);
-      if (error) console.error(error);
-      else setInvoices(data || []);
+      if (error) {
+        console.error('Fetch error:', error);
+      } else {
+        console.log('Fetched invoices:', data);
+        setInvoices(data || []);
+      }
     };
     fetchInvoices();
   }, [user]);
