@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'; // Added useEffect import
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { generatePDF } from '@/lib/pdfGenerator';
 
 export default function NewInvoicePage() {
   const { user, loading } = useAuth();
@@ -11,6 +12,7 @@ export default function NewInvoicePage() {
   const [clientId, setClientId] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
   const [error, setError] = useState('');
+  const [newInvoice, setNewInvoice] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,15 +29,22 @@ export default function NewInvoicePage() {
       }
       clientUuid = clientId;
     }
-    const { error: insertError } = await supabase.from('invoices').insert({
+    const { data, error: insertError } = await supabase.from('invoices').insert({
       user_id: user.id,
       client_id: clientUuid,
       title,
       total_amount: parseFloat(totalAmount),
       status: 'draft',
-    });
+    }).select();
     if (insertError) setError(insertError.message);
-    else navigate('/invoices');
+    else {
+      setNewInvoice(data[0]);
+      navigate('/invoices');
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    if (newInvoice) generatePDF(newInvoice);
   };
 
   if (loading) return <p>Loading...</p>;
@@ -64,6 +73,11 @@ export default function NewInvoicePage() {
         </div>
         <Button type="submit">Create Invoice</Button>
       </form>
+      {newInvoice && (
+        <div className="mt-4">
+          <Button onClick={handleDownloadPDF}>Download PDF</Button>
+        </div>
+      )}
     </div>
   );
 }
