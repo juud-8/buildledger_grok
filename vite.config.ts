@@ -9,7 +9,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, '.'), // Maps @/ to the project root
+      '@': resolve(__dirname, './'), // Maps @/ to the project root
     },
+    extensions: ['.js', '.ts', '.tsx', '.jsx'], // Ensure .tsx is recognized
   },
 });

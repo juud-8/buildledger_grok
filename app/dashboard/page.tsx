@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { askAI } from '@/lib/aiAgent';
 import { Button } from '@/components/ui/button';
+import { Line } from 'react-chartjs-2';
+import 'chart.js/auto'; // Registers Chart.js components
 
 export default function DashboardPage() {
   const [cashFlow, setCashFlow] = useState<number[]>([]);
@@ -13,7 +15,7 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       const { data: invoices, error: invError } = await supabase
         .from('invoices')
-        .select('total_amount, status')
+        .select('total_amount, status, issued_date')
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
       if (invError) console.error(invError);
 
@@ -34,6 +36,43 @@ export default function DashboardPage() {
     };
     fetchDashboardData();
   }, []);
+
+  const chartData = {
+    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    datasets: [{
+      label: "Cash Flow ($)",
+      data: cashFlow,
+      fill: false,
+      borderColor: "#f97316", // Orange accent
+      backgroundColor: "#1e3a8a", // Navy
+      tension: 0.1
+    }]
+  };
+
+  const chartOptions = {
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "Amount ($)"
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: "Month"
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: "#ffffff" // White for dark mode
+        }
+      }
+    }
+  };
 
   const handleAIQuery = async () => {
     const response = await askAI('How much did I make last month?');
@@ -56,7 +95,10 @@ export default function DashboardPage() {
         Ask AI
       </Button>
       {aiResponse && <p>AI: {aiResponse}</p>}
-      <p>Monthly Cash Flow Chart Coming Soon...</p>
+      <div className="mt-4">
+        <h2 className="text-xl font-semibold mb-2">Monthly Cash Flow</h2>
+        <Line data={chartData} options={chartOptions} />
+      </div>
     </div>
   );
 }
